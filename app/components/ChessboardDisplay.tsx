@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React from 'react';
+import { useState, useEffect, useRef, useImperativeHandle } from 'react';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { Button } from '@/components/ui/button';
@@ -59,13 +60,25 @@ interface ChessboardDisplayProps {
   showMovesList?: boolean;
 }
 
-export default function ChessboardDisplay({
-  pgn,
-  analyzedMoves = [],
-  currentMoveIndex = -1,
-  onMoveSelected,
-  showMovesList = true
-}: ChessboardDisplayProps) {
+// Export a type for the imperative handle
+export type ChessboardDisplayHandle = {
+  handleBestMoveClick: () => void;
+  handleAlternativeMoveClick: (index: number) => void;
+};
+
+// Define component function without forwardRef first
+function ChessboardDisplayComponent(
+  props: ChessboardDisplayProps, 
+  ref: React.ForwardedRef<ChessboardDisplayHandle>
+) {
+  const { 
+    pgn, 
+    analyzedMoves = [], 
+    currentMoveIndex = -1, 
+    onMoveSelected, 
+    showMovesList = true 
+  } = props;
+
   const [chess] = useState(new Chess());
   const [fen, setFen] = useState(chess.fen());
   const [moves, setMoves] = useState<any[]>([]);
@@ -73,7 +86,23 @@ export default function ChessboardDisplay({
   const [boardWidth, setBoardWidth] = useState(500);
   const [highlightedSquares, setHighlightedSquares] = useState<{[key: string]: React.CSSProperties}>({});
   const [pieceIcons, setPieceIcons] = useState<{[key: string]: React.ReactNode}>({});
+  // New state for arrows - using any[] to avoid potential type issues with the external library
+  const [arrows, setArrows] = useState<any[]>([]);
+  // New state to track if we're showing best move or alternative move
+  const [selectedMove, setSelectedMove] = useState<{type: 'played' | 'best' | 'alternative', index?: number} | null>(null);
   const containerRef = useRef(null);
+  
+  // Expose methods to parent component via ref
+  useImperativeHandle(ref, () => ({
+    handleBestMoveClick: () => {
+      showBestMoveArrow();
+      setSelectedMove({ type: 'best' });
+    },
+    handleAlternativeMoveClick: (index: number) => {
+      showAlternativeMoveArrow(index);
+      setSelectedMove({ type: 'alternative', index });
+    }
+  }));
   
   // Responsive board sizing with resize observer
   useEffect(() => {
@@ -116,6 +145,39 @@ export default function ChessboardDisplay({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+  
+  // Helper function to convert chess.js algebraic notation to coordinates
+  const squareToCoordinates = (square: string) => {
+    const file = square.charCodeAt(0) - 'a'.charCodeAt(0);
+    const rank = 8 - parseInt(square.charAt(1));
+    return { x: file, y: rank };
+  };
+
+  // Helper function to calculate the arrow path that avoids overlapping pieces
+  const calculateArrowPath = (from: string, to: string) => {
+    const fromCoord = squareToCoordinates(from);
+    const toCoord = squareToCoordinates(to);
+    
+    // Calculate direction vector
+    const dx = toCoord.x - fromCoord.x;
+    const dy = toCoord.y - fromCoord.y;
+    
+    // Normalize the vector length to avoid overlapping the piece
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const normalizedDx = dx / length;
+    const normalizedDy = dy / length;
+    
+    // End coordinates that don't overlap the piece (reduce by 0.3 squares)
+    const endX = toCoord.x - normalizedDx * 0.3;
+    const endY = toCoord.y - normalizedDy * 0.3;
+    
+    return {
+      sourceX: fromCoord.x + 0.5, // Center of the source square
+      sourceY: fromCoord.y + 0.5, // Center of the source square
+      targetX: endX + 0.5, // Adjusted end point + center offset
+      targetY: endY + 0.5, // Adjusted end point + center offset
+    };
+  };
   
   // Load PGN
   useEffect(() => {
@@ -184,7 +246,7 @@ export default function ChessboardDisplay({
     }
   };
 
-  // Update highlighted squares when current move changes
+  // Update highlighted squares and arrows when current move changes
   useEffect(() => {
     if (currentMove >= 0 && currentMove < moves.length) {
       const move = moves[currentMove];
@@ -243,11 +305,135 @@ export default function ChessboardDisplay({
       } else {
         setPieceIcons({});
       }
+
+      // Show arrows for the best move by default
+      showBestMoveArrow();
+      setSelectedMove({ type: 'played' });
     } else {
       setHighlightedSquares({});
       setPieceIcons({});
+      setArrows([]);
+      setSelectedMove(null);
     }
   }, [currentMove, moves, analyzedMoves]);
+  
+  // Function to show arrow for the best move
+  const showBestMoveArrow = () => {
+    if (currentMove >= 0 && currentMove < moves.length && analyzedMoves[currentMove]) {
+      const currentAnalyzedMove = analyzedMoves[currentMove];
+      
+      if (currentAnalyzedMove.evaluation.bestMove) {
+        // Parse the best move to get source and target squares
+        const moveStr = currentAnalyzedMove.evaluation.bestMove;
+        const chess = new Chess(currentAnalyzedMove.fen);
+        
+        try {
+          // Handle the move parsing differently to avoid the sloppy parameter
+          // Try first with the move string directly
+          let moveObj;
+          try {
+            moveObj = chess.move(moveStr);
+          } catch (e) {
+            // If direct move fails, try to parse it manually
+            // This handles cases where the move notation might be in different formats
+            const moves = chess.moves({ verbose: true });
+            moveObj = moves.find(m => m.san === moveStr);
+            
+            // If still not found, try matching by UCIish format (e.g. "e2e4")
+            if (!moveObj && moveStr.length >= 4) {
+              const from = moveStr.substring(0, 2);
+              const to = moveStr.substring(2, 4);
+              moveObj = moves.find(m => m.from === from && m.to === to);
+            }
+          }
+          
+          if (moveObj) {
+            const { from, to } = moveObj;
+            
+            // Set the arrow for the best move - using the react-chessboard customArrows format
+            // customArrows takes an array of arrays: [['fromSquare', 'toSquare', 'color']]
+            setArrows([
+              [from, to, "#4CAF50"] // Green color for best move
+            ]);
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing best move:', e);
+        }
+      }
+    }
+    
+    // Clear arrows if no best move can be determined
+    setArrows([]);
+  };
+
+  // Function to show arrow for an alternative move
+  const showAlternativeMoveArrow = (alternativeIndex: number) => {
+    if (currentMove >= 0 && 
+        currentMove < moves.length && 
+        analyzedMoves[currentMove] && 
+        analyzedMoves[currentMove].evaluation.alternatives &&
+        alternativeIndex < analyzedMoves[currentMove].evaluation.alternatives.length) {
+      
+      const currentAnalyzedMove = analyzedMoves[currentMove];
+      const alternative = currentAnalyzedMove.evaluation.alternatives[alternativeIndex];
+      
+      if (alternative.move) {
+        // Parse the alternative move to get source and target squares
+        const moveStr = alternative.move;
+        const chess = new Chess(currentAnalyzedMove.fen);
+        
+        try {
+          // Handle the move parsing differently to avoid the sloppy parameter
+          // Try first with the move string directly
+          let moveObj;
+          try {
+            moveObj = chess.move(moveStr);
+          } catch (e) {
+            // If direct move fails, try to parse it manually
+            // This handles cases where the move notation might be in different formats
+            const moves = chess.moves({ verbose: true });
+            moveObj = moves.find(m => m.san === moveStr);
+            
+            // If still not found, try matching by UCIish format (e.g. "e2e4")
+            if (!moveObj && moveStr.length >= 4) {
+              const from = moveStr.substring(0, 2);
+              const to = moveStr.substring(2, 4);
+              moveObj = moves.find(m => m.from === from && m.to === to);
+            }
+          }
+          
+          if (moveObj) {
+            const { from, to } = moveObj;
+            
+            // Set the arrow for the alternative move - using the react-chessboard customArrows format
+            // customArrows takes an array of arrays: [['fromSquare', 'toSquare', 'color']]
+            setArrows([
+              [from, to, "#FFA726"] // Orange color for alternative moves
+            ]);
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing alternative move:', e);
+        }
+      }
+    }
+    
+    // Clear arrows if no alternative move can be determined
+    setArrows([]);
+  };
+  
+  // Handler for clicking on "Best Move" in the analysis box
+  const handleBestMoveClick = () => {
+    showBestMoveArrow();
+    setSelectedMove({ type: 'best' });
+  };
+
+  // Handler for clicking on an alternative move in the analysis box
+  const handleAlternativeMoveClick = (index: number) => {
+    showAlternativeMoveArrow(index);
+    setSelectedMove({ type: 'alternative', index });
+  };
   
   // Navigate to a specific move
   const navigateToMove = (index: number) => {
@@ -399,7 +585,7 @@ export default function ChessboardDisplay({
               {currentMove >= 0 && analyzedMoves[currentMove] && (
                 <>
                   {/* Desktop evaluation display */}
-                  <div className="hidden md:flex absolute top-0 left-0 right-0 bottom-0 text-[10px] items-center justify-center z-10 font-mono font-bold">
+                <div className="hidden md:flex absolute top-0 left-0 right-0 bottom-0 text-[10px] items-center justify-center z-10 font-mono font-bold">
                     <div className={`rotate-90 whitespace-nowrap ${analyzedMoves[currentMove].evaluation.score >= 0 ? 'text-black' : 'text-white'}`}>
                       {formatEvaluation(analyzedMoves[currentMove].evaluation.score)}
                     </div>
@@ -409,8 +595,8 @@ export default function ChessboardDisplay({
                   <div className="md:hidden flex absolute top-0 left-0 right-0 bottom-0 text-[10px] items-center justify-center z-10 font-mono font-bold">
                     <div className={`whitespace-nowrap ${analyzedMoves[currentMove].evaluation.score >= 0 ? 'text-white' : 'text-black'}`}>
                       {formatEvaluation(analyzedMoves[currentMove].evaluation.score)}
-                    </div>
                   </div>
+                </div>
                 </>
               )}
             </div>
@@ -423,6 +609,7 @@ export default function ChessboardDisplay({
                 areArrowsAllowed={true}
                 customSquareStyles={highlightedSquares}
                 customPieces={pieceIcons}
+                customArrows={arrows}
                 customBoardStyle={{
                   borderRadius: '0.375rem',
                   boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
@@ -514,4 +701,10 @@ export default function ChessboardDisplay({
       </Card>
     </div>
   );
-} 
+}
+
+// Add display name to help with debugging
+ChessboardDisplayComponent.displayName = 'ChessboardDisplay';
+
+// Export the component properly
+export default React.forwardRef<ChessboardDisplayHandle, ChessboardDisplayProps>(ChessboardDisplayComponent); 

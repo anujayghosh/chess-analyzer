@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Upload, RotateCw, ChevronRight, Settings } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { StockfishLevel } from '../lib/stockfish/stockfish-service';
+import Image from 'next/image';
 
 interface PgnUploaderProps {
   onPgnSubmit: (pgn: string, engineLevel: StockfishLevel) => void;

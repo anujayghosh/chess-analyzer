@@ -30,7 +30,7 @@ A web application that allows users to analyze their Chess.com games using the S
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/chess-analysis.git
+git clone https://github.com/anujayghosh/chess-analyzer.git
 cd chess-analysis
 ```
 
@@ -74,7 +74,16 @@ This application is configured for easy deployment on Render.com.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### Attribution Requirements
+
+If you use this codebase or parts of it in your own projects, please include the following attribution:
+
+```
+Chess Analyzer - Originally created by Anujay Ghosh
+https://github.com/anujayghosh/chess-analyzer
+```
 
 ## Acknowledgements
 

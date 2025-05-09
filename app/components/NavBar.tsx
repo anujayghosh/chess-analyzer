@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Github, MenuIcon, ChevronRight, XIcon } from 'lucide-react';
+import Image from 'next/image';
 
 interface NavBarProps {
   onNewAnalysis?: () => void;
@@ -32,19 +33,14 @@ export default function NavBar({ onNewAnalysis, showNewAnalysis = true }: NavBar
         <div className="flex flex-1 items-center justify-between">
           <div className="flex items-center space-x-2">
             <Link href="/" className="flex items-center space-x-2">
-              {/* Chess Knight icon */}
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                className="h-7 w-7"
-              >
-                <path d="M10.62 5.44c-1-1-2.5-.8-3.5.2-.94.95-.92 2.5.02 3.44l.53.53-5.5 5.48c-.92.93-.9 2.47.02 3.4.96.96 2.46.94 3.43.03l5.47-5.47.52.52c.95.95 2.5.93 3.44-.02 1-1 1.2-2.5.2-3.5l-.2-.2C19.22 9.66 21 15 21 15c-2.2.02-5.54-1.34-7.07-2.87l-.2-.2c-1-1-2.5-.8-3.5.2-.94.95-.92 2.5.02 3.44l7.07 7.07a.3.3 0 01-.02.42.3.3 0 01-.42-.02L3.02 9.18a.3.3 0 01.02-.42.3.3 0 01.42.02l7.07 7.07c.94.94 2.5.96 3.44.02 1-1 1.2-2.5.2-3.5l-.2-.2c-1.53-1.53-2.87-4.87-2.86-7.07 0 0 5.4 1.8 5.4 1.8l-.2-.2c-1-1-2.5-.8-3.5.2-.94.95-.92 2.5.02 3.44l.52.52-5.47 5.47c-.9.92-2.44.94-3.4-.02-.94-1.13-.88-2.43.03-3.42l5.48-5.5.53.53c.94.94 2.5.96 3.44.02 1-1 1.2-2.5.2-3.5l-.2-.2z"/>
-              </svg>
+              {/* Chess Analyzer Logo */}
+              <Image 
+                src="/logo.svg" 
+                alt="Chess Analyzer Logo" 
+                width={38} 
+                height={38} 
+                className="h-9 w-9"
+              />
               <span className="font-bold text-xl">Chess Analyzer</span>
             </Link>
           </div>
@@ -59,7 +55,7 @@ export default function NavBar({ onNewAnalysis, showNewAnalysis = true }: NavBar
               <span className="absolute left-0 right-0 bottom-0 h-[2px] bg-primary scale-x-0 transition-transform group-hover:scale-x-100"></span>
             </Link>
             <a 
-              href="https://github.com/yourusername/chess-analysis" 
+              href="https://github.com/anujayghosh/chess-analyzer" 
               target="_blank" 
               rel="noopener noreferrer"
               className="transition-colors hover:text-primary flex items-center gap-1"
@@ -113,7 +109,7 @@ export default function NavBar({ onNewAnalysis, showNewAnalysis = true }: NavBar
               About
             </Link>
             <a 
-              href="https://github.com/yourusername/chess-analysis" 
+              href="https://github.com/anujayghosh/chess-analyzer" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-sm font-medium transition-colors hover:text-primary flex items-center gap-1"

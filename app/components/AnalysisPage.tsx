@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import PgnUploader from './PgnUploader';
-import ChessboardDisplay from './ChessboardDisplay';
+import ChessboardDisplay, { ChessboardDisplayHandle } from './ChessboardDisplay';
 import AnalysisDisplay from './AnalysisDisplay';
 import GameSummary from './GameSummary';
 import NavBar from './NavBar';
@@ -23,6 +23,13 @@ export default function AnalysisPage() {
   const [analysisCache, setAnalysisCache] = useState<Map<StockfishLevel, AnalyzedMove[]>>(new Map());
   const [backgroundAnalysisProgress, setBackgroundAnalysisProgress] = useState<number>(0);
   const [isPerformingBackgroundAnalysis, setIsPerformingBackgroundAnalysis] = useState<boolean>(false);
+  
+  // New state for arrow visualization
+  const [selectedMoveType, setSelectedMoveType] = useState<'played' | 'best' | 'alternative'>('played');
+  const [selectedAlternativeIndex, setSelectedAlternativeIndex] = useState<number | undefined>(undefined);
+  
+  // Refs to access methods from child components - use proper typing
+  const chessboardRef = useRef<ChessboardDisplayHandle>(null);
   
   const {
     isInitialized,
@@ -239,6 +246,29 @@ export default function AnalysisPage() {
     setAnalysisCache(new Map()); // Clear cache
   };
   
+  // Handlers for arrow visualization
+  const handleBestMoveClick = () => {
+    if (chessboardRef.current && chessboardRef.current.handleBestMoveClick) {
+      chessboardRef.current.handleBestMoveClick();
+    }
+    setSelectedMoveType('best');
+    setSelectedAlternativeIndex(undefined);
+  };
+  
+  const handleAlternativeMoveClick = (index: number) => {
+    if (chessboardRef.current && chessboardRef.current.handleAlternativeMoveClick) {
+      chessboardRef.current.handleAlternativeMoveClick(index);
+    }
+    setSelectedMoveType('alternative');
+    setSelectedAlternativeIndex(index);
+  };
+  
+  // Reset to played move when changing moves
+  useEffect(() => {
+    setSelectedMoveType('played');
+    setSelectedAlternativeIndex(undefined);
+  }, [currentMoveIndex]);
+  
   const currentAnalyzedMove = analyzedMoves[currentMoveIndex];
 
   return (
@@ -288,6 +318,7 @@ export default function AnalysisPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-5 lg:gap-6">
                   <div className="lg:col-span-9 xl:col-span-9">
                     <ChessboardDisplay 
+                      ref={chessboardRef}
                       pgn={pgn} 
                       analyzedMoves={analyzedMoves}
                       currentMoveIndex={currentMoveIndex}
@@ -303,6 +334,10 @@ export default function AnalysisPage() {
                       onSkillLevelChange={handleSkillLevelChange}
                       backgroundAnalysisProgress={backgroundAnalysisProgress}
                       isPerformingBackgroundAnalysis={isPerformingBackgroundAnalysis}
+                      onBestMoveClick={handleBestMoveClick}
+                      onAlternativeMoveClick={handleAlternativeMoveClick}
+                      selectedMoveType={selectedMoveType}
+                      selectedAlternativeIndex={selectedAlternativeIndex}
                     />
                     
                     {/* Moves List */}
@@ -358,8 +393,7 @@ export default function AnalysisPage() {
       </main>
       <footer className="py-6 border-t">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Powered by Stockfish and Next.js</p>
-          <p className="mt-1">© {new Date().getFullYear()} Chess Game Analyzer. All rights reserved.</p>
+          <p className="mt-1">© {new Date().getFullYear()} Chess Analyzer. Open source under the <a href="https://github.com/anujayghosh/chess-analyzer/blob/main/LICENSE" className="underline hover:text-blue-600" target="_blank" rel="noopener noreferrer">MIT License</a></p>
         </div>
       </footer>
     </div>

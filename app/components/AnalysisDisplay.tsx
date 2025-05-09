@@ -24,6 +24,11 @@ interface AnalysisDisplayProps {
   onSkillLevelChange: (level: StockfishLevel) => void;
   backgroundAnalysisProgress?: number;
   isPerformingBackgroundAnalysis?: boolean;
+  // New props for arrow visualization
+  onBestMoveClick?: () => void;
+  onAlternativeMoveClick?: (index: number) => void;
+  selectedMoveType?: 'played' | 'best' | 'alternative';
+  selectedAlternativeIndex?: number;
 }
 
 export default function AnalysisDisplay({
@@ -31,7 +36,12 @@ export default function AnalysisDisplay({
   skillLevel,
   onSkillLevelChange,
   backgroundAnalysisProgress = 0,
-  isPerformingBackgroundAnalysis = false
+  isPerformingBackgroundAnalysis = false,
+  // New props with defaults
+  onBestMoveClick = () => {},
+  onAlternativeMoveClick = () => {},
+  selectedMoveType = 'played',
+  selectedAlternativeIndex
 }: AnalysisDisplayProps) {
   // Helper functions for displaying analysis
   const getClassificationLabel = (classification: string) => {
@@ -201,10 +211,24 @@ export default function AnalysisDisplay({
                     {formatScore(analyzedMove.evaluation.score)}
                   </div>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Best Move</div>
-                  <div className="text-xl font-bold">
+                <div 
+                  className={`bg-gray-50 dark:bg-gray-800 p-3 rounded-lg cursor-pointer transition-all 
+                    ${selectedMoveType === 'best' ? 'ring-2 ring-green-500 dark:ring-green-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                  onClick={onBestMoveClick}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground mb-1">Best Move</div>
+                    {selectedMoveType === 'best' && (
+                      <div className="bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded-full p-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xl font-bold flex items-center">
                     {analyzedMove.evaluation.bestMove}
+                    <div className="ml-2 rounded-full h-2 w-2 bg-green-500"></div>
                   </div>
                 </div>
               </div>
@@ -229,7 +253,7 @@ export default function AnalysisDisplay({
               
               {analyzedMove.evaluation.alternatives && analyzedMove.evaluation.alternatives.length > 0 && (
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg hover:shadow-md transition-shadow">
-                  <details className="group">
+                  <details className="group" open>
                     <summary className="flex cursor-pointer items-center justify-between">
                       <div className="text-sm text-muted-foreground">
                         Alternative Moves
@@ -240,8 +264,18 @@ export default function AnalysisDisplay({
                     </summary>
                     <div className="space-y-2 mt-2 animate-fadeIn">
                       {analyzedMove.evaluation.alternatives.slice(0, 3).map((alt, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-sm p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                          <span className="font-mono">{alt.move}</span>
+                        <div 
+                          key={idx} 
+                          className={`flex justify-between items-center text-sm p-1.5 rounded transition-colors cursor-pointer
+                            ${selectedMoveType === 'alternative' && selectedAlternativeIndex === idx 
+                              ? 'bg-orange-100 dark:bg-orange-900/30 ring-2 ring-orange-400' 
+                              : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                          onClick={() => onAlternativeMoveClick(idx)}
+                        >
+                          <span className="font-mono flex items-center">
+                            {alt.move}
+                            <div className="ml-2 rounded-full h-2 w-2 bg-orange-400"></div>
+                          </span>
                           <span className={`font-medium ${alt.score >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                             {formatScore(alt.score)}
                           </span>
