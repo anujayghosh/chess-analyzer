@@ -1,4 +1,4 @@
-# Chess.com Game Analysis with Stockfish
+# Chess Game Analysis with Stockfish
 
 A web application that allows users to analyze their Chess.com games using the Stockfish chess engine. The app provides detailed move analysis, accuracy scores, and identifies critical moments in the game.
 
