@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: chess-analysis
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /
+    plan: free
+    autoDeploy: true
+    branch: main 
