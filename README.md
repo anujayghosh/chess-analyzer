@@ -1,5 +1,7 @@
 # Chess Game Analysis with Stockfish
 
+**🚀 [Try the Live App Here](https://chess-analyzer-v7uy.onrender.com)** 
+
 A web application that allows users to analyze their Chess.com games using the Stockfish chess engine. The app provides detailed move analysis, accuracy scores, and identifies critical moments in the game.
 
 ## Features
@@ -53,6 +55,8 @@ yarn dev
 4. Open [http://localhost:3000](http://localhost:3000) in your browser to access the application.
 
 ## Deployment on Render
+
+This application is deployed and available at: **[https://chess-analyzer-v7uy.onrender.com](https://chess-analyzer-v7uy.onrender.com)**
 
 This application is configured for easy deployment on Render.com.
 
